@@ -11,9 +11,10 @@ args = parser.parse_args()
 file_path = Path(args.input)
 rawinput = [line.rstrip('\n') for line in open(file_path)]
 
+
 for word in rawinput:
     re.sub("(.)*\{\"onset", "\{\"onset", word)
     re.sub("\, \"detune(.)*", "", word)
     print(word)
 
-exit()
+#exit()
