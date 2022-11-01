@@ -12,7 +12,7 @@ using TMPro;
 
 public class Main : MonoBehaviour
 {
-    public AudioSource enigma; // Holds the music.
+    public AudioSource gameAudio; // Holds the music.
     public GameObject canvas; // Holds the canvas to attach created prefabs to.
     public Queue<GameObject> Lyrics = new Queue<GameObject>(); // Holds the lyric to be displayed.
     public GameObject lifeCount; // Holds the display text for the number of lifes.
@@ -30,8 +30,39 @@ public class Main : MonoBehaviour
     {   
         life = 5; // Initializes the number of lives to 5.
 
-        // Plays the audio file.
-        enigma.Play();
+        // Loads the audio file.
+        BinaryReader reader = new BinaryReader(new FileStream(@"songs/audio.wav",FileMode.Open));     
+
+        byte[] sound;
+        
+        int chunkID = reader.ReadInt32();      
+        int fileSize = reader.ReadInt32();     
+        int riffType = reader.ReadInt32();     
+        int fmtID = reader.ReadInt32();        
+        int fmtSize = reader.ReadInt32();      
+        int fmtCode = reader.ReadInt16();      
+        int channels = reader.ReadInt16();     
+        int sampleRate = reader.ReadInt32();   
+        int fmtAvgBPS = reader.ReadInt32();    
+        int fmtBlockAlign = reader.ReadInt16();
+        int bitDepth = reader.ReadInt16();
+    
+        if(fmtSize == 18)                          
+        {                                          
+            // Read any extra values               
+            int fmtExtraSize = reader.ReadInt16(); 
+            reader.ReadBytes(fmtExtraSize);        
+        }    
+
+        int dataID = reader.ReadInt32();    
+        int dataSize = reader.ReadInt32();  
+        sound = reader.ReadBytes(dataSize);  
+
+        gameAudio.clip.SetData(Convert16BitByteArrayToAudioClipData(sound), 0);
+
+        for (int i = 0; i < 100000; i++) { Debug.Log(gameAudio.clip.GetData()[i]); }
+
+        gameAudio.Play();
 
         loadNotes(); // Calls the function that reads an .lt file.
     }
@@ -104,7 +135,7 @@ public class Main : MonoBehaviour
 
         // This block of code handles the fail case, where all the lives have been exhausted. The music is stopped and the fail screen is activated.
         if (life == 0) {
-            enigma.Stop();
+            gameAudio.Stop();
             gameOver.SetActive(true);
             gameWin = false;
             quitGame();
@@ -138,7 +169,7 @@ public class Main : MonoBehaviour
         double scaleFactor = 0.5; // The scale factor -- this is used to account for the tempo which is independent from the ns listed in the .lt file.
 
         // This block of code reads and parses the .lt file.
-        using (StreamReader sr = File.OpenText("Assets/Resources/enigma.lt"))
+        using (StreamReader sr = File.OpenText("songs/audio.lt"))
         {
             string line;
 
@@ -242,5 +273,17 @@ public class Main : MonoBehaviour
     IEnumerator quitGame() {
         yield return new WaitForSeconds(10);
         Application.Quit();
+    }
+
+    private static float[] Convert16BitByteArrayToAudioClipData(byte[] source)
+    {
+        float[] data = new float[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            data[i] = ((float) source[i] / Int16.MaxValue); // <<---
+        }
+
+        return data;
     }
 }
