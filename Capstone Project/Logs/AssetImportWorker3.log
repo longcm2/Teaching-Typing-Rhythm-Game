@@ -15,7 +15,7 @@ C:/Users/caleb/Documents/GitHub/Teaching-Typing-Rhythm-Game/Capstone Project
 -logFile
 Logs/AssetImportWorker3.log
 -srvPort
-54212
+61276
 Successfully changed project path to: C:/Users/caleb/Documents/GitHub/Teaching-Typing-Rhythm-Game/Capstone Project
 C:/Users/caleb/Documents/GitHub/Teaching-Typing-Rhythm-Game/Capstone Project
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
@@ -47,7 +47,7 @@ C:/Users/caleb/Documents/GitHub/Teaching-Typing-Rhythm-Game/Capstone Project
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Refreshing native plugins compatible for Editor in 3783.65 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 387.05 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.8f1 (b30333d56e81)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/2021.3.8f1/Editor/Data/Resources/UnitySubsystems
@@ -63,42 +63,42 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/2021.3.8f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/2021.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/2021.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56000
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56712
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/2021.3.8f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.018279 seconds.
+Registered in 0.013524 seconds.
 Native extension for WindowsStandalone target not found
-Refreshing native plugins compatible for Editor in 2326.69 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 385.47 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  4.724 seconds
+- Completed reload, in  3.437 seconds
 Domain Reload Profiling:
-	ReloadAssembly (4727ms)
-		BeginReloadAssembly (387ms)
+	ReloadAssembly (3439ms)
+		BeginReloadAssembly (829ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (0ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (3ms)
-		EndReloadAssembly (3927ms)
-			LoadAssemblies (380ms)
+			CreateAndSetChildDomain (2ms)
+		EndReloadAssembly (2200ms)
+			LoadAssemblies (822ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (497ms)
+			SetupTypeCache (458ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (103ms)
-			SetupLoadedEditorAssemblies (3085ms)
+			RebuildScriptCaches (118ms)
+			SetupLoadedEditorAssemblies (1369ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (34ms)
+				InitializePlatformSupportModulesInManaged (24ms)
 				SetLoadedEditorAssemblies (1ms)
-				RefreshPlugins (2327ms)
-				BeforeProcessingInitializeOnLoad (5ms)
-				ProcessInitializeOnLoadAttributes (542ms)
-				ProcessInitializeOnLoadMethodAttributes (177ms)
+				RefreshPlugins (386ms)
+				BeforeProcessingInitializeOnLoad (4ms)
+				ProcessInitializeOnLoadAttributes (723ms)
+				ProcessInitializeOnLoadMethodAttributes (230ms)
 				AfterProcessingInitializeOnLoad (0ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
 			AwakeInstancesAfterBackupRestoration (0ms)
 Platform modules already initialized, skipping
 Registering precompiled user dll's ...
-Registered in 0.045642 seconds.
+Registered in 0.058400 seconds.

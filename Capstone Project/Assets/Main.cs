@@ -3,24 +3,32 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Text.RegularExpressions;
+using UnityEngine.Networking;  // UnityWebRequest 
 using TMPro;
 
 public class Main : MonoBehaviour
 {
-    public AudioSource gameAudio; // Holds the music.
-    public GameObject canvas; // Holds the canvas to attach created prefabs to.
+    public AudioSource gameAudio; // Holds the music.'
+    public GameObject titleScreen;
+    public GameObject mainGame; // Holds the canvas to attach created prefabs to.
     public Queue<GameObject> Lyrics = new Queue<GameObject>(); // Holds the lyric to be displayed.
     public GameObject lifeCount; // Holds the display text for the number of lifes.
+    public GameObject songName; // Holds the name of the song.
     public GameObject input; // Holds the input box.
     public GameObject gameOver; // Holds the game over picture.
     public GameObject winScreen; //Holds the game win picture.
     public GameObject backlog; // Holds the display text for the number of notes in the queue.
     public GameObject noteBack; // The square behind the lyric.
+    public GameObject songTitle;
+    public GameObject songArtist;
+    public Button startButton;
+    public bool startButtonPressed = false;
     public bool active; // Used to determine which branch to take in Update().
     public bool gameWin = false; // A somewhat finnicky variable used to tell if the game has been won by use of multiple race conditions -- should likely be replaced by a song specific check.
     public int life; // Holds the number of lives
@@ -30,125 +38,138 @@ public class Main : MonoBehaviour
     {   
         life = 5; // Initializes the number of lives to 5.
 
-        // Loads the audio file.
-        BinaryReader reader = new BinaryReader(new FileStream(@"songs/audio.wav",FileMode.Open));     
-
-        byte[] sound;
-        
-        int chunkID = reader.ReadInt32();      
-        int fileSize = reader.ReadInt32();     
-        int riffType = reader.ReadInt32();     
-        int fmtID = reader.ReadInt32();        
-        int fmtSize = reader.ReadInt32();      
-        int fmtCode = reader.ReadInt16();      
-        int channels = reader.ReadInt16();     
-        int sampleRate = reader.ReadInt32();   
-        int fmtAvgBPS = reader.ReadInt32();    
-        int fmtBlockAlign = reader.ReadInt16();
-        int bitDepth = reader.ReadInt16();
-    
-        if(fmtSize == 18)                          
-        {                                          
-            // Read any extra values               
-            int fmtExtraSize = reader.ReadInt16(); 
-            reader.ReadBytes(fmtExtraSize);        
-        }    
-
-        int dataID = reader.ReadInt32();    
-        int dataSize = reader.ReadInt32();  
-        sound = reader.ReadBytes(dataSize);  
-
-        gameAudio.clip.SetData(Convert16BitByteArrayToAudioClipData(sound), 0);
-
-        for (int i = 0; i < 100000; i++) { Debug.Log(gameAudio.clip.GetData()[i]); }
-
-        gameAudio.Play();
-
-        loadNotes(); // Calls the function that reads an .lt file.
+        startButton.onClick.AddListener(() => { startButtonPressed = true; }); // A lambda function that sets startButtonPressed to true when the Start button is pressed.
     }
 
     //  Update is called once per frame
     void Update()
     {
-        input.GetComponent<TMP_InputField>().ActivateInputField(); // Makes the text field active.
+        // TITLE SCREEN SECTION
+        if (titleScreen.activeSelf) {
+            if (startButtonPressed) {
+                var path = Application.dataPath + "/../songs/" + songName.GetComponentInChildren<TMP_InputField>().text + ".wav"; // Build the path -- should be platform exclusive.
+                LoadNotes(path); // Calls the huge function that changes the context and loads everything.
+                startButtonPressed = false; // Prevent this code from running multiple times.
+            }
+        }
+        
+        // MAIN GAME SECTION
+        else if (mainGame.activeSelf) {
+            input.GetComponent<TMP_InputField>().ActivateInputField(); // Makes the text field active.
 
-        /* This if statement block first ensures that there is an active note. It then will use a comparison to determine if the text
-         * in the input field is the same as the text in the currently displayed lyric. If it is, then it will destroy the lyric and
-         * potentially display the new one if there is another note in the queue.
-         */
-        if (active && Lyrics.Count != 0) {
-            if (checkUserInput()) {
-                input.GetComponentInChildren<TMP_InputField>().text = ""; // Clears the input field.
+            /* This if statement block first ensures that there is an active note. It then will use a comparison to determine if the text
+            * in the input field is the same as the text in the currently displayed lyric. If it is, then it will destroy the lyric and
+            * potentially display the new one if there is another note in the queue.
+            */
+            if (active && Lyrics.Count != 0) {
+                if (checkUserInput()) {
+                    input.GetComponentInChildren<TMP_InputField>().text = ""; // Clears the input field.
+                    noteBack.SetActive(false);
+                    Destroy(Lyrics.Dequeue());
+                    if (Lyrics.Count != 0) {
+                        showNote();
+                    }
+                    else {
+                        active = false;
+                    }
+                }
+            }
+
+            // This block of code is executed if there isn't an active lyric yet there are some in the queue.
+            if (!active && Lyrics.Count != 0) {
+                showNote();
+            }
+
+            // If there are no notes in the queue, we await for more and hide the note backing.
+            if (Lyrics.Count == 0) {
                 noteBack.SetActive(false);
-                Destroy(Lyrics.Dequeue());
+            }
+
+            // This block of code changes the color of the backlog number depending on the severity and closeness to 25, the highest number it can be before a life is lost.
+            if (Lyrics.Count < 10) {
+                backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 255); // white
+            }
+            if (Lyrics.Count >= 10) {
+                backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 0); // yellow
+            }
+            if (Lyrics.Count >= 15) {
+                backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 127, 0); // orange
+            }
+            if (Lyrics.Count >= 20) {
+                backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 0, 0); // red
+            }
+            
+            // If there are more than 25 lyrics in the backlog, a life is lost. 25 notes are removed from the queue,
+                // and if there is a new note in the queue after those removals, it is activated.
+            if (Lyrics.Count > 25) {
+                updateLife();
+                input.GetComponentInChildren<TMP_InputField>().text = ""; // Clears the input field.
+                for (int i = 0; i < 25; i++) {
+                    Destroy(Lyrics.Dequeue());
+                }
+
                 if (Lyrics.Count != 0) {
                     showNote();
                 }
                 else {
+                    noteBack.SetActive(false);
                     active = false;
                 }
             }
-        }
 
-        // This block of code is executed if there isn't an active lyric yet there are some in the queue.
-        if (!active && Lyrics.Count != 0) {
-            showNote();
-        }
+            backlog.GetComponent<TextMeshProUGUI>().SetText(Lyrics.Count.ToString()); // This line of code updates the actual backlog number.
 
-        // If there are no notes in the queue, we await for more and hide the note backing.
-        if (Lyrics.Count == 0) {
-            noteBack.SetActive(false);
-        }
-
-        // This block of code changes the color of the backlog number depending on the severity and closeness to 25, the highest number it can be before a life is lost.
-        if (Lyrics.Count < 10) {
-            backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 255); // white
-        }
-        if (Lyrics.Count >= 10) {
-            backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 0); // yellow
-        }
-        if (Lyrics.Count >= 15) {
-            backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 127, 0); // orange
-        }
-        if (Lyrics.Count >= 20) {
-            backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 0, 0); // red
-        }
-        
-        // If there are more than 25 lyrics in the backlog, a life is lost. 25 notes are removed from the queue,
-            // and if there is a new note in the queue after those removals, it is activated.
-        if (Lyrics.Count > 25) {
-            updateLife();
-            for (int i = 0; i < 25; i++) {
-                Destroy(Lyrics.Dequeue());
+            // This block of code handles the fail case, where all the lives have been exhausted. The music is stopped and the fail screen is activated.
+            if (life == 0) {
+                gameAudio.Stop();
+                gameOver.SetActive(true);
+                gameWin = false;
+                quitGame();
             }
 
-            if (Lyrics.Count != 0) {
-                showNote();
+            // This code handles the win condition. The music isn't stopped here, since I'd prefer to let it play out to the end.
+            if (gameWin && Lyrics.Count == 0) {
+                winScreen.SetActive(true);
+                quitGame();
             }
-            else {
-                noteBack.SetActive(false);
-                active = false;
-            }
-        }
-
-        backlog.GetComponent<TextMeshProUGUI>().SetText(Lyrics.Count.ToString()); // This line of code updates the actual backlog number.
-
-        // This block of code handles the fail case, where all the lives have been exhausted. The music is stopped and the fail screen is activated.
-        if (life == 0) {
-            gameAudio.Stop();
-            gameOver.SetActive(true);
-            gameWin = false;
-            quitGame();
-        }
-
-        // This code handles the win condition. The music isn't stopped here, since I'd prefer to let it play out to the end.
-        if (gameWin && Lyrics.Count == 0) {
-            winScreen.SetActive(true);
-            quitGame();
         }
     }
 
-    /* loadNotes
+    /* LoadClip
+     * 
+     * This function is used to load the audio file from the user computer. The physical path is made
+     * in the Update() function under the titleScreen section.
+     * 
+     * Unity has no easy way of loading audio from a file; therefore, the web service is used to
+     * request a local file, similarly to opening a PDF or text file in a modern web browser.
+     * 
+     * @param - path: the path of the audio file to load.
+     * @return - Task<AudioClip>: a task that will return an AudioClip after it's finished running.
+     */
+    async Task<AudioClip> LoadClip(string path) {
+        AudioClip clip = null;
+        using (UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip(path, AudioType.WAV)) {
+            uwr.SendWebRequest();
+
+            try {
+                while (!uwr.isDone) await Task.Delay(5); // Try to load the file every few seconds.
+
+                if (uwr.result == UnityWebRequest.Result.ConnectionError || uwr.result == UnityWebRequest.Result.ProtocolError) {
+                    Debug.Log($"{uwr.error}"); // Log the error message.
+                }
+                else {
+                    clip = DownloadHandlerAudioClip.GetContent(uwr); // Set clip equal to the loaded content.
+                }
+            }
+            catch (Exception err) {
+                Debug.Log($"{err.Message}, {err.StackTrace}"); // Log the error message.
+            }
+        }
+
+        return clip;
+    }
+
+    /* LoadNotes
      * 
      * This function is called in Start(). It parses every note and handles their loading, along with
      * their timing. It also handles activation in the case of the first note.
@@ -162,17 +183,35 @@ public class Main : MonoBehaviour
      * @param - none
      * @return - none
      */
-    void loadNotes()
+    async void LoadNotes(String path)
     {
-        double startDelay = -0.1; // The initial offset -- hard coded for now, will be song-specific in the future. By advancing the notes forward a small bit, both
+
+        // Loads the audio -- asynchronous since it can take a moment.
+        AudioClip loadedAudio = await LoadClip(path);
+
+        gameAudio.clip = loadedAudio;
+
+        // Switches the context from title screen to the main game screen.
+        titleScreen.SetActive(false);
+        mainGame.SetActive(true);
+
+        double startDelay = 0.5; // The initial offset -- hard coded for now, will be song-specific in the future. By advancing the notes forward a small bit, both
                                             // mental and physical lag are considered.
         double scaleFactor = 0.5; // The scale factor -- this is used to account for the tempo which is independent from the ns listed in the .lt file.
 
         // This block of code reads and parses the .lt file.
-        using (StreamReader sr = File.OpenText("songs/audio.lt"))
+        using (StreamReader sr = File.OpenText("songs/" + songName.GetComponentInChildren<TMP_InputField>().text + ".lt"))
         {
-            string line;
+            // Pulls the song title and artist from the first two lines.
+            songTitle.GetComponent<TextMeshProUGUI>().SetText(sr.ReadLine());
+            songArtist.GetComponent<TextMeshProUGUI>().SetText(sr.ReadLine());
 
+            // Grabs the numbers for the start delay and scale factor from the next two lines.
+            startDelay = double.Parse(sr.ReadLine());
+            scaleFactor = double.Parse(sr.ReadLine());
+
+            // Pulls each lyric from the rest of the file.
+            string line;
             while ((line = sr.ReadLine()) != null)
             {
                 if (!line.Contains("+") && !line.Contains("-")) {
@@ -210,7 +249,7 @@ public class Main : MonoBehaviour
                         lyric.SetActive(false);
 
                         // Assigns the lyric to the canvas so it can be displayed.
-                        lyric.transform.SetParent(canvas.transform);
+                        lyric.transform.SetParent(mainGame.transform);
 
                         yield return new WaitForSeconds(10); // Tells the coroutine to wait 10 more seconds before setting gameWin to true.
                             gameWin = true;
@@ -220,6 +259,8 @@ public class Main : MonoBehaviour
                 }
             }
         }
+
+        gameAudio.Play();
     }
 
     /* checkUserInput 
@@ -270,20 +311,14 @@ public class Main : MonoBehaviour
      * @param - none
      * @return - none
      */
-    IEnumerator quitGame() {
-        yield return new WaitForSeconds(10);
-        Application.Quit();
-    }
+    void quitGame() {
+        waitFor10Seconds();
 
-    private static float[] Convert16BitByteArrayToAudioClipData(byte[] source)
-    {
-        float[] data = new float[source.Length];
-
-        for (int i = 0; i < source.Length; i++)
-        {
-            data[i] = ((float) source[i] / Int16.MaxValue); // <<---
+        // A coroutine to wait to let the player wallow in their loss (or win).
+        IEnumerator waitFor10Seconds() {
+            yield return new WaitForSeconds(10);
         }
 
-        return data;
+        Application.Quit(); // Only works in compiled builds.
     }
 }

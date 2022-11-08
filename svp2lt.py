@@ -17,11 +17,16 @@ title = Path(args.title)
 artist = Path(args.artist)
 scale = Path(args.scale)
 offset = Path(args.offset)
-rawinput = [line.rstrip('\n') for line in open(file_path)]
 
-print(title, "\n", artist, "\n", scale, "\n", offset, "\n")
+contents = open(file_path).read()
+re.sub("onset", "\nonset", contents)
 
-for word in rawinput:
-    re.sub("(.)*\\{\"onset", "\\{\"onset", word)
-    re.sub("\\, \"detune(.)*", "", word)
-    print(word)
+print(contents)
+
+#print(title,"\n",artist,"\n",scale,"\n",offset,"\n")
+
+#for word in rawinput:
+#    temp = word
+#    re.sub("(.)*onset", "onset", temp)
+#    re.sub("detune(.)*", "detune", temp)
+#    print(temp)
