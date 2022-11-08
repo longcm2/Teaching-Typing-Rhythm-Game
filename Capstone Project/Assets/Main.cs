@@ -209,7 +209,6 @@ public class Main : MonoBehaviour
             // Grabs the numbers for the start delay and scale factor from the next two lines.
             startDelay = double.Parse(sr.ReadLine());
             scaleFactor = 0.947368 - (0.00263158 * double.Parse(sr.ReadLine())); // A formula to convert from tempo to scale.
-            Debug.Log(scaleFactor);
 
             // Pulls each lyric from the rest of the file.
             string line;
