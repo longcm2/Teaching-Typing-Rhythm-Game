@@ -27,17 +27,19 @@ public class Main : MonoBehaviour
     public GameObject noteBack; // The square behind the lyric.
     public GameObject songTitle;
     public GameObject songArtist;
+    public GameObject lives;
+    public GameObject backlogMax;
     public Button startButton;
     public bool startButtonPressed = false;
     public bool active; // Used to determine which branch to take in Update().
     public bool gameWin = false; // A somewhat finnicky variable used to tell if the game has been won by use of multiple race conditions -- should likely be replaced by a song specific check.
-    public int life; // Holds the number of lives
+    public int life = 5; // Holds the number of lives
+    public int backlogLim = 25;
+    public double  endTime = 999;
 
     //  Start is called before the first frame update
     void Start()
     {   
-        life = 5; // Initializes the number of lives to 5.
-
         startButton.onClick.AddListener(() => { startButtonPressed = true; }); // A lambda function that sets startButtonPressed to true when the Start button is pressed.
     }
 
@@ -47,6 +49,8 @@ public class Main : MonoBehaviour
         // TITLE SCREEN SECTION
         if (titleScreen.activeSelf) {
             if (startButtonPressed) {
+                life = int.Parse(lives.GetComponentInChildren<TMP_InputField>().text); // Takes user input and places it into the life variable.
+                backlogLim = int.Parse(backlogMax.GetComponentInChildren<TMP_InputField>().text); // Takes user input and places it into the backlogLim variable.
                 var path = Application.dataPath + "/../songs/" + songName.GetComponentInChildren<TMP_InputField>().text + ".wav"; // Build the path -- should be platform exclusive.
                 LoadNotes(path); // Calls the huge function that changes the context and loads everything.
                 startButtonPressed = false; // Prevent this code from running multiple times.
@@ -56,6 +60,7 @@ public class Main : MonoBehaviour
         // MAIN GAME SECTION
         else if (mainGame.activeSelf) {
             input.GetComponent<TMP_InputField>().ActivateInputField(); // Makes the text field active.
+            lifeCount.GetComponent<TextMeshProUGUI>().SetText(life.ToString());
 
             /* This if statement block first ensures that there is an active note. It then will use a comparison to determine if the text
             * in the input field is the same as the text in the currently displayed lyric. If it is, then it will destroy the lyric and
@@ -86,25 +91,25 @@ public class Main : MonoBehaviour
             }
 
             // This block of code changes the color of the backlog number depending on the severity and closeness to 25, the highest number it can be before a life is lost.
-            if (Lyrics.Count < 10) {
+            if (Lyrics.Count < (0.25 * backlogLim)) {
                 backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 255); // white
             }
-            if (Lyrics.Count >= 10) {
+            if (Lyrics.Count >= 0.25 * backlogLim) {
                 backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 0); // yellow
             }
-            if (Lyrics.Count >= 15) {
+            if (Lyrics.Count >= 0.5 * backlogLim) {
                 backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 127, 0); // orange
             }
-            if (Lyrics.Count >= 20) {
+            if (Lyrics.Count >= 0.75 * backlogLim) {
                 backlog.GetComponent<TextMeshProUGUI>().color = new Color (255, 0, 0); // red
             }
             
             // If there are more than 25 lyrics in the backlog, a life is lost. 25 notes are removed from the queue,
                 // and if there is a new note in the queue after those removals, it is activated.
-            if (Lyrics.Count > 25) {
-                updateLife();
+            if (Lyrics.Count > backlogLim) {
+                life--;
                 input.GetComponentInChildren<TMP_InputField>().text = ""; // Clears the input field.
-                for (int i = 0; i < 25; i++) {
+                for (int i = 0; i < backlogLim; i++) {
                     Destroy(Lyrics.Dequeue());
                 }
 
@@ -234,10 +239,7 @@ public class Main : MonoBehaviour
                     // This is a subroutine, somewhat like a lambda function, that handles the note creation and queueing.
                     IEnumerator createNote(string lyric_, double diff_)
                     {
-                        gameWin = false;
-                        yield return new WaitForSeconds((float) diff_); //  Tells this coroutine to hang on for a bit. gameWin is set to false before and after it
-                                                                            // to minimize chances of a false positive.
-                        gameWin = false;
+                        yield return new WaitForSeconds((float) diff_); //  Tells this coroutine to hang on for a bit.
 
                         GameObject lyric = Instantiate(Resources.Load("lyric", typeof(GameObject))) as GameObject; // Creates a GameObject based on the "lyric" prefab.
 
@@ -250,10 +252,9 @@ public class Main : MonoBehaviour
 
                         // Assigns the lyric to the canvas so it can be displayed.
                         lyric.transform.SetParent(mainGame.transform);
-
-                        yield return new WaitForSeconds(10); // Tells the coroutine to wait 10 more seconds before setting gameWin to true.
-                            gameWin = true;
                     }
+
+                    endTime = diff;
 
                     StartCoroutine(createNote(lyric, diff)); // Starts the above subroutine to display and control the note.
                 }
@@ -261,6 +262,14 @@ public class Main : MonoBehaviour
         }
 
         gameAudio.Play();
+
+        IEnumerator endTimer(double diff_)
+        {
+            yield return new WaitForSeconds((float) diff_);
+            gameWin = true;
+        }
+        
+        StartCoroutine(endTimer(endTime));
     }
 
     /* checkUserInput 
@@ -276,18 +285,6 @@ public class Main : MonoBehaviour
                             Remove(input.GetComponentInChildren<TextMeshProUGUI>().text.Trim().Length - 1, 1)); // I have added a manual trim of 1 character off the end because
                                                                                                                     // the input field, for some reason, consistently had an extra
                                                                                                                     // empty spot at the end of its string which ruined the comparison.
-    }
-
-    /* updateLife
-     * 
-     * This function is called to decrement life and reflect that in the displayed life counter.
-     * 
-     * @param - none
-     * @return - none
-     */
-    void updateLife() {
-        life--;
-        lifeCount.GetComponent<TextMeshProUGUI>().SetText(life.ToString());
     }
 
     /* showNote
