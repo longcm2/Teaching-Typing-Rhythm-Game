@@ -18,6 +18,12 @@ public class Main : MonoBehaviour
     public GameObject titleScreen;
     public GameObject mainGame; // Holds the canvas to attach created prefabs to.
     public Queue<GameObject> Lyrics = new Queue<GameObject>(); // Holds the lyric to be displayed.
+    public int protagSing = 0;
+    public int bossSing = 0;
+    public GameObject wynndef;
+    public GameObject wynnsing;
+    public GameObject mariedef;
+    public GameObject mariesing;
     public GameObject lifeCount; // Holds the display text for the number of lifes.
     public GameObject songName; // Holds the name of the song.
     public GameObject input; // Holds the input box.
@@ -35,7 +41,9 @@ public class Main : MonoBehaviour
     public bool gameWin = false; // A somewhat finnicky variable used to tell if the game has been won by use of multiple race conditions -- should likely be replaced by a song specific check.
     public int life = 5; // Holds the number of lives
     public int backlogLim = 25;
-    public double  endTime = 999;
+    public double endTime = 999;
+    public int powerupCount = 0;
+    public GameObject powerupCountDisplay;
 
     //  Start is called before the first frame update
     void Start()
@@ -59,6 +67,70 @@ public class Main : MonoBehaviour
         
         // MAIN GAME SECTION
         else if (mainGame.activeSelf) {
+
+            // If the user typed, change the protag's animation.
+            if (Input.anyKey) {
+                if (Time.frameCount % 10 == 0 && powerupCount != 100) powerupCount++;
+                protagSing++;
+            }
+            else {
+                if (Time.frameCount % 10 == 0 && powerupCount > 0) powerupCount--;
+            }
+
+            powerupCountDisplay.GetComponent<TextMeshProUGUI>().SetText(powerupCount.ToString());
+
+            if (powerupCount >= 98) {
+                powerupCountDisplay.GetComponent<TextMeshProUGUI>().color = new Color (0, 127, 255);
+                if (Input.GetKeyDown(KeyCode.BackQuote)) {
+                    powerupCount = 0;
+                    input.GetComponentInChildren<TMP_InputField>().text = ""; // Clears the input field.
+                    for (int i = 0; i < Lyrics.Count; i++) {
+                        Destroy(Lyrics.Dequeue());
+                    }
+
+                    if (Lyrics.Count != 0) {
+                        showNote();
+                    }
+                    else {
+                        noteBack.SetActive(false);
+                        active = false;
+                    }
+
+                    powerupCount = 0;
+                }
+            }
+            else if (powerupCount > 75) {
+                powerupCountDisplay.GetComponent<TextMeshProUGUI>().color = new Color (0, 127, 127);
+            }
+            else {
+                powerupCountDisplay.GetComponent<TextMeshProUGUI>().color = new Color (255, 255, 255);
+            }
+
+            // If there isn't any reason for the singing animation to be playing, stop it. Otherwise, play it.
+            if (protagSing == 0) {
+                wynndef.SetActive(true);
+                wynnsing.SetActive(false);
+            }
+            else {
+                wynndef.SetActive(false);
+                wynnsing.SetActive(true);
+            }
+            if (bossSing == 0) {
+                mariedef.SetActive(true);
+                mariesing.SetActive(false);
+            }
+            else {
+                mariedef.SetActive(false);
+                mariesing.SetActive(true);
+            }
+
+            // Disable the animations every half second -- gives them movement and life.
+            if (Time.frameCount % 30 == 0) {
+                protagSing = 0;
+                bossSing = 0;
+            }
+
+
             input.GetComponent<TMP_InputField>().ActivateInputField(); // Makes the text field active.
             lifeCount.GetComponent<TextMeshProUGUI>().SetText(life.ToString());
 
@@ -247,6 +319,8 @@ public class Main : MonoBehaviour
                         
                         Lyrics.Enqueue(lyric);
 
+                        bossSing++; // Enable the boss animation.
+
                         // Hides the note so that the Update function can awaken it later.
                         lyric.SetActive(false);
 
@@ -263,6 +337,7 @@ public class Main : MonoBehaviour
 
         gameAudio.Play();
 
+        // Sets gameWin to true after waiting for the last note to enter.
         IEnumerator endTimer(double diff_)
         {
             yield return new WaitForSeconds((float) diff_);
