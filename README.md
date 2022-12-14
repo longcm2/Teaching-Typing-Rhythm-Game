@@ -30,6 +30,9 @@ Features:
       
 User Manual:
     Welcome to Tapping Typist! Type in a song to begin. Two songs are included in the release file: "enigma" and "i h8 u". Feel free to use the script hosted here to create your own file using a .svp file (Synthesizer V Project file).
+    
     I recommend that you start with a high life count and backlog maximum, as this game is difficult. I also recommend that you try a test game with a keyboard layout you are proficient with before attempting to learn a new one.
+    
     The powerup is usable after the meter reaches 100 -- this is reached through pressing keys during rests or typing lyrics during verses. Use the powerup by pressing the grave key, which clears the entire backlog!
+    
     The game will automatically exit after you win or lose all of your lives. Good luck!
